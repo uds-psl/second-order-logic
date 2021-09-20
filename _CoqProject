@@ -1,0 +1,23 @@
+-R . SOL
+
+-install none
+COQDOCFLAGS = "--charset utf-8 --parse-comments -s --with-header ../website/resources/header.html --with-footer ../website/resources/footer.html --index indexpage"
+
+
+Util.v
+ListLib.v
+VectorLib.v
+Decidable.v
+Enumerable.v
+FOL.v
+SOL.v
+FullSyntax.v
+Subst.v
+Tarski.v
+PA.v
+Incompleteness.v
+Deduction.v
+Henkin.v
+Henkin2FOL.v
+Henkin2FOL_Funcs.v
+Henkin2FOL_VanDalen.v
