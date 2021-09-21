@@ -5,10 +5,10 @@ COQDOCFLAGS = "--charset utf-8 --parse-comments -s --with-header ../website/reso
 
 
 Util.v
-ListLib.v
-VectorLib.v
 Decidable.v
+ListLib.v
 Enumerable.v
+VectorLib.v
 FOL.v
 SOL.v
 FullSyntax.v
@@ -16,8 +16,6 @@ Subst.v
 Tarski.v
 PA.v
 Incompleteness.v
-Deduction.v
 Henkin.v
+Deduction.v
 Henkin2FOL.v
-Henkin2FOL_Funcs.v
-Henkin2FOL_VanDalen.v

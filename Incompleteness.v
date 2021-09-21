@@ -627,36 +627,34 @@ Section IncompletenessPA.
   Hypothesis complete : forall A phi, valid A phi -> A ⊢ phi.
   Hypothesis prv_enumerable : forall A, enumerable (fun phi => A ⊢ phi).
 
-  Lemma standard_model_validity_enumerable_PA :
-    enumerable (fun phi => first_order phi /\ bounded_indi 0 phi /\ Standard_PA_Model ⊨ phi).
+  Lemma PA_valid_to_model phi :
+    PA ⊨ phi <-> valid PA_L phi.
   Proof.
-    eapply enumerable_ext with (p1 := fun phi => first_order phi /\ bounded_indi 0 phi /\ PA ⊨ phi).
-    - intros phi. split. easy. intros [F [B H]]. repeat split; trivial. 
-      intros M rho. now apply PA_models_agree_FO with (rho := empty_PA_env _).
-    - repeat apply enumerable_conj.
-      + apply form_eq_dec.
-      + apply enumerable_decidable, decidable_if, first_order_dec. apply PA_form_enumerable.
-      + apply form_eq_dec.
-      + apply enumerable_decidable, decidable_if, bounded_indi_dec. apply PA_form_enumerable.
-      + eapply enumerable_ext with (p1 := prv PA_L). 2: apply prv_enumerable.
-        intros phi. split.
-        * intros H%sound. intros M rho. apply H. intros psi H1. now apply (M_correct M).
-        * intros H. apply complete. intros D I rho HPA. pose (M := {| M_domain := D ; M_interp := I|}).
-          assert (forall phi, PA phi -> M ⊨ phi) as M_correct.
-          { intros psi H1 rho'. specialize (HPA psi H1). repeat destruct H1 as [<-|H1]; try apply HPA. easy. }
-          apply (H {| M_model := M ; M_correct := M_correct |}).
+    split.
+    - intros H D I rho H1. pose (M := {| M_domain := D ; M_interp := I |}).
+      assert (forall psi, PA psi -> M ⊨ psi) as H2. { 
+        intros psi H2 rho'. repeat destruct H2 as [<-|H2]. apply (H1 ax_eq_refl). 2: apply (H1 ax_eq_symm). 3: apply (H1 ax_zero_succ). 4: apply (H1 ax_succ_inj). 5: apply (H1 ax_add_zero). 6: apply (H1 ax_add_rec). 7: apply (H1 ax_mul_zero). 8: apply (H1 ax_mul_rec). 9: apply (H1 ax_ind). 10: easy. all: clear; firstorder.
+      } apply (H {| M_model := M ; M_correct := H2 |}).
+    - intros H M rho. apply H. intros psi H1. repeat destruct H1 as [<-|H1]; try easy; apply (M_correct M); clear; firstorder.
+  Qed.
+
+  Lemma validity_enumerable_PA :
+    enumerable (fun phi => PA ⊨ phi).
+  Proof.
+    eapply enumerable_ext. 2: apply (prv_enumerable PA_L). intros phi. setoid_rewrite PA_valid_to_model.
+    split. apply sound. apply complete.
   Qed.
 
   Theorem Incompleteness_PA :
     bi_enumerable H10.
   Proof.
-    now apply standard_model_validity_not_enumerable, standard_model_validity_enumerable_PA.
+   apply PA_validity_not_enumerable, validity_enumerable_PA.
   Qed.
 
   Theorem Incompleteness_PA' :
     MP -> decidable H10.
   Proof.
-    intros mp. now apply standard_model_validity_not_enumerable', standard_model_validity_enumerable_PA.
+    intros mp. now apply PA_validity_not_enumerable', validity_enumerable_PA.
   Qed.
 
 End IncompletenessPA.
@@ -677,46 +675,34 @@ Section Incompleteness.
   Hypothesis complete : forall A phi, valid A phi -> A ⊢ phi.
   Hypothesis prv_enumerable : forall A, enumerable (fun phi => A ⊢ phi).
 
-  (* Since the deduction system doesn't use the PA signature, we
-     need to work with the embedding. *)
-  Lemma PA_valid_iff_sat phi :
-    valid ([]) (embed_PA phi) <-> PA ⊨ phi.
+  Lemma valid_to_model phi :
+    (forall M : Model, M ⊨ phi) <-> valid ([]) phi.
   Proof.
     split.
-    - intros H. apply PA_sat_iff_empty_theory_sat. intros M rho. now apply H.
-    - intros H D I rho _. pose (M := {| M_model := {| M_domain := D ; M_interp := I |} ; M_correct := (fun _ (f : False) => match f with end) |}). 
-      now apply PA_sat_iff_empty_theory_sat with (M0 := M).
+    - intros H D I rho H1. apply (H {| M_domain := D ; M_interp := I |}).
+    - intros H M rho. apply H. now intros psi H1.
   Qed.
 
   Context `{eq_dec_Σf : Decidable.eq_dec Σf}.
   Context `{eq_dec_Σp : Decidable.eq_dec Σp}.
 
-  Lemma standard_model_validity_enumerable :
-    enumerable (fun phi => first_order phi /\ bounded_indi 0 phi /\ Standard_PA_Model ⊨ phi).
+  Lemma validity_enumerable :
+    enumerable (fun phi => forall M : Model, M ⊨ phi).
   Proof.
-    eapply enumerable_ext with (p1 := fun phi => first_order phi /\ bounded_indi 0 phi /\ valid ([]) (embed_PA phi)).
-    - intros phi. setoid_rewrite PA_valid_iff_sat. split. easy. intros [F [B H]]. repeat split; trivial. 
-      intros M rho. now apply PA_models_agree_FO with (rho := empty_PA_env _).
-    - repeat apply enumerable_conj.
-      + apply form_eq_dec.
-      + apply enumerable_decidable, decidable_if, first_order_dec. apply PA_form_enumerable.
-      + apply form_eq_dec.
-      + apply enumerable_decidable, decidable_if, bounded_indi_dec. apply PA_form_enumerable.
-      + apply enumerable_ext with (p1 := fun phi => prv ([]) (embed_PA phi)).
-        * intros phi. split. now intros H%sound. intros H. now apply complete.
-        * apply enumerable_comp. apply prv_enumerable. apply PA_form_enumerable. apply form_eq_dec.
+    eapply enumerable_ext. 2: apply (prv_enumerable ([])). intros phi. setoid_rewrite valid_to_model.
+    split. apply sound. apply complete.
   Qed.
 
   Theorem Incompleteness :
     bi_enumerable H10.
   Proof.
-    now apply standard_model_validity_not_enumerable, standard_model_validity_enumerable.
+    apply validity_not_enumerable, validity_enumerable.
   Qed.
 
   Theorem Incompleteness' :
     MP -> decidable H10.
   Proof.
-    intros MP. now apply standard_model_validity_not_enumerable', standard_model_validity_enumerable.
+    intros MP. now apply validity_not_enumerable', validity_enumerable.
   Qed.
 
 End Incompleteness.

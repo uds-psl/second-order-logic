@@ -1098,20 +1098,26 @@ Section Incompleteness.
   Hypothesis eq_dec_Preds : eq_dec preds.
 
   Theorem IncompleteI :
-    MP -> (forall A phi, valid A phi -> A ⊢i phi) -> decidable H10.
+    (forall A phi, valid A phi -> A ⊢i phi) -> bi_enumerable H10.
   Proof.
-    intros mp H. apply (Incompleteness (@prv _ _ intu)).
+    intros H. apply (Incompleteness (@prv _ _ intu)).
     - apply SoundnessI.
     - apply H.
     - eapply prv_enumerable. apply enum_Funcs'. apply enum_Preds'. 
       apply eq_dec_Funcs. apply eq_dec_Preds.
     - apply eq_dec_Funcs.
     - apply eq_dec_Preds.
-    - apply mp.
+  Qed.
+
+  Corollary IncompleteI' :
+    MP -> (forall A phi, valid A phi -> A ⊢i phi) -> decidable H10.
+  Proof.
+    intros mp H. apply Post. easy. apply polynomial_pair_enumerable.
+    all: now apply IncompleteI.
   Qed.
 
   Theorem IncompleteC :
-    LEM -> (forall A phi, valid A phi -> A ⊢c phi) -> decidable H10.
+    LEM -> (forall A phi, valid A phi -> A ⊢c phi) -> bi_enumerable H10.
   Proof.
     intros lem H. apply (Incompleteness (@prv _ _ class)).
     - intros. now apply SoundnessC.
@@ -1120,7 +1126,13 @@ Section Incompleteness.
       apply eq_dec_Funcs. apply eq_dec_Preds.
     - apply eq_dec_Funcs.
     - apply eq_dec_Preds.
-    - intros f H1. specialize (lem (tsat f)). tauto.
+  Qed.
+
+  Corollary IncompleteC' :
+    LEM -> (forall A phi, valid A phi -> A ⊢c phi) -> decidable H10.
+  Proof.
+    intros lem H. apply Post. intros f H1. specialize (lem (tsat f)). tauto. 
+    apply polynomial_pair_enumerable. all: now apply IncompleteC.
   Qed.
 
 End Incompleteness.
