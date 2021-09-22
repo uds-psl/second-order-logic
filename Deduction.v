@@ -326,6 +326,20 @@ Section ND.
     - apply comprehension_sound.
   Qed.
 
+  (* Goal forall P, ~ ~ (P \/ ~ P). intros P. tauto. Show Proof. *)
+
+  Lemma Soundness_to_LEM :
+    (forall A phi, A ⊢c phi -> Tarski.valid A phi) -> LEM.
+  Proof.
+    intros H P. enough (valid List.nil (p$0 (Vector.nil _) ∨ ¬ p$0 (Vector.nil _))) as X.
+    { pose (I := {| i_f f v := 0 ; i_P P v := False |}). 
+      destruct (X nat I ⟨fun _ => 0, fun _ _ _ => 0, fun _ _ _ => P⟩); auto. easy. }
+    apply H. eapply IE. eapply Peirce with (psi := ⊥).
+    apply II. apply Exp. eapply IE with (phi := ¬ p$0 (Vector.nil term)).
+    - apply II. eapply IE. apply Ctx; now right. apply DI2. now apply Ctx.
+    - apply II. eapply IE. apply Ctx; now right. apply DI1. now apply Ctx.
+  Qed.
+
   Corollary SoundnessIT T phi :
     T ⊩i phi -> Tarski.validT T phi.
   Proof.
@@ -333,11 +347,19 @@ Section ND.
     intros psi H2. apply HT, HA, H2.
   Qed.
 
-  Corollary SoundnessCT T phi :
-    LEM -> T ⊩c phi -> Tarski.validT T phi.
+  Corollary SoundnessCT :
+    LEM <-> (forall T phi, T ⊩c phi -> Tarski.validT T phi).
   Proof.
-    intros lem [A [HA H1]] D I rho HT. eapply SoundnessC; trivial. apply H1.
-    intros psi H2. apply HT, HA, H2.
+    split.
+    - intros lem T phi [A [HA H1]] D I rho HT. eapply SoundnessC; trivial. apply H1.
+      intros psi H2. apply HT, HA, H2.
+    - intros H P. enough (validT (fun _ => False) (p$0 (Vector.nil _) ∨ ¬ p$0 (Vector.nil _))) as X.
+      { pose (I := {| i_f f v := 0 ; i_P P v := False |}). 
+        destruct (X nat I ⟨fun _ => 0, fun _ _ _ => 0, fun _ _ _ => P⟩); auto. easy. }
+      apply H. exists List.nil. split; trivial. eapply IE. eapply Peirce with (psi := ⊥).
+      apply II. apply Exp. eapply IE with (phi := ¬ p$0 (Vector.nil term)).
+      + apply II. eapply IE. apply Ctx; now right. apply DI2. now apply Ctx.
+      + apply II. eapply IE. apply Ctx; now right. apply DI1. now apply Ctx.
   Qed.
 
 End ND.
@@ -1387,12 +1409,23 @@ Section Henkin.
     intros psi H2. apply HT, HA, H2.
   Qed.
 
-  Corollary HenkinSoundnessCT T phi :
-    LEM -> T ⊩c phi -> Henkin.validT T phi.
+  Corollary HenkinSoundnessCT :
+    LEM <-> (forall T phi, T ⊩c phi -> Henkin.validT T phi).
   Proof.
-    intros lem [A [HA H1]] D I funcs preds HI HC rho Hrho HT. 
-    eapply HenkinSoundnessC; try eassumption.
-    intros psi H2. apply HT, HA, H2.
+    split.
+    - intros lem T phi [A [HA H1]] D I funcs preds HI HC rho Hrho HT. 
+      eapply HenkinSoundnessC; try eassumption.
+      intros psi H2. apply HT, HA, H2.
+    - intros H P. enough (validT (fun _ => False) (p$0 (Vector.nil _) ∨ ¬ p$0 (Vector.nil _))) as X.
+      { pose (I := {| i_f f v := 0 ; i_P P v := False |}).
+        assert (henkin_interp I (fun _ _ => True) (fun _ _ => True)) as HI by easy.
+        assert (forall rho, (nat -> nat -> True) -> forall ar phi, funcfree phi -> sat (fun _ _ => True) (fun _ _ => True) rho (comprehension_form ar phi)) as HC.
+        { intros rho _ ar phi _. apply sat_full_henkin, comprehension_sound. }
+        destruct (X nat I (fun _ _ => True) (fun _ _ => True) HI HC ⟨fun _ => 0, fun _ _ _ => 0, fun _ _ _ => P⟩); auto. easy. easy. }
+      apply H. exists List.nil. split; trivial. eapply IE. eapply Peirce with (psi := ⊥).
+      apply II. apply Exp. eapply IE with (phi := ¬ p$0 (Vector.nil term)).
+      + apply II. eapply IE. apply Ctx; now right. apply DI2. now apply Ctx.
+      + apply II. eapply IE. apply Ctx; now right. apply DI1. now apply Ctx.
   Qed.
 
 End Henkin.
