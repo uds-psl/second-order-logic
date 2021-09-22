@@ -78,7 +78,7 @@ Ltac inv_collect :=
 
 Hint Rewrite <- app_assoc : list.
 Hint Rewrite rev_app_distr map_app prod_length : list.
-Hint Resolve in_eq in_nil in_cons in_or_app : core.
+Global Hint Resolve in_eq in_nil in_cons in_or_app : core.
 
 
 Instance in_dec X `{H : eq_dec X} (x : X) A :

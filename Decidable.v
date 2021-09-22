@@ -38,7 +38,7 @@ Proof.
   destruct d as [A|A]; cbn; intuition congruence.
 Qed.
 
-Hint Extern 4 =>
+Global Hint Extern 4 =>
   match goal with
     | [ |- dec ((fun _ => _) _) ] => cbn
   end : typeclass_instances.
@@ -66,7 +66,7 @@ Proof.
   congruence.
 Qed.
 
-Hint Extern 4 =>
+Global Hint Extern 4 =>
   match goal with
     [ H : dec2bool (Dec ?P) = true |- _ ] => apply Dec_true in H
   | [ H : dec2bool (Dec ?P) = true |- _ ] => apply Dec_false in H
