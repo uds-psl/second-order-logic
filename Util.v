@@ -1,15 +1,12 @@
 (** * Preliminaries *)
 
-(** This file contains definitions and proofs from the Saarland University 
-    ICL lecture. Author: Gert Smolka *)
-
 From Coq Require Import PeanoNat.
 Require Import Lia.
 Import Nat.
 
 
 (** ** Cantor Pairing *)
-(** Based on development by Gert Smolka: https://www.ps.uni-saarland.de/~smolka/drafts/coq/pairing.v *)
+(** Code by Gert Smolka: https://www.ps.uni-saarland.de/~smolka/drafts/coq/pairing.v *)
 
 Section Pairing.
 

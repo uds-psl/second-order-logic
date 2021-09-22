@@ -999,7 +999,7 @@ Section Signature.
     - destruct p as [|[]]; cbn. 2,3: apply CI; apply II; apply Ctx; now left.
       specialize (H3 n0 ar0). destruct (PeanoNat.Nat.eq_dec n0 m) as [->|].
       + destruct (PeanoNat.Nat.eq_dec ar0 ar) as [->|].
-        * rewrite H1, H2. 
+        * rewrite H1, H2.
           Existing Instance Σp2. (* TODO: Better way to locally force the usage of Σp2 ? *)
           assert (forall_n ar (p$n' (tabulate ar var_indi) <--> ⊥) :: List.nil ⊢2forall_n ar (p$n' (tabulate ar var_indi) <--> ⊥)) as H by now apply Ctx.
           eapply prv_forall_n in H. cbn in H. rewrite tabulate_var_indi_subst in H.

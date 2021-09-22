@@ -1,7 +1,7 @@
 -R . SOL
 
 -install none
-COQDOCFLAGS = "--charset utf-8 --parse-comments -s --with-header ../website/resources/header.html --with-footer ../website/resources/footer.html --index indexpage"
+COQDOCFLAGS = "--charset utf-8 --parse-comments -s --with-header website/resources/header.html --with-footer website/resources/footer.html --index indexpage"
 
 
 Util.v
