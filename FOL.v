@@ -350,7 +350,7 @@ Section Bounded.
     - apply IHbounded. lia.
   Qed.
 
-  (* Derive Signature for In. *)
+  Derive Signature for In.
 
   Lemma find_bounded_step n (v : vec term n) :
     (forall t : term, vec_in t v -> {n : nat | bounded_t n t}) -> { n | forall t, In t v -> bounded_t n t }.

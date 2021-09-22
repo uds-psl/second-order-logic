@@ -158,7 +158,7 @@ Qed.
 
 Definition cumulative {X} (L: nat -> list X) :=
   forall n, exists A, L (S n) = L n ++ A.
-Hint Extern 0 (cumulative _) => intros ?; cbn; eauto : core.
+Global Hint Extern 0 (cumulative _) => intros ?; cbn; eauto : core.
 
 Lemma cum_ge {X} {L: nat -> list X} {n m} :
   cumulative L -> m >= n -> exists A, L m = L n ++ A.
@@ -313,7 +313,7 @@ Proof.
   intros H. eapply to_cumul_spec. eauto.
 Qed.
 
-Hint Resolve cumul_In In_cumul : core.
+Global Hint Resolve cumul_In In_cumul : core.
 
 Lemma list_enumerator_to_cumul {X} {p : X -> Prop} {L} :
   list_enumerator L p -> list_enumerator (to_cumul L) p.
@@ -375,7 +375,7 @@ Proof.
   intros [L H].
   eexists. now eapply enumerator__T_list.
 Qed.
-Hint Extern 4 => match goal with [H : list_enumerator _ ?p |- ?p _ ] => eapply H end : core.
+Global Hint Extern 4 => match goal with [H : list_enumerator _ ?p |- ?p _ ] => eapply H end : core.
 
 (* Lemma enumerable_conj X (p q : X -> Prop) :
   discrete X -> enumerable p -> enumerable q -> enumerable (fun x => p x /\ q x).
@@ -421,8 +421,8 @@ Proof.
 Defined.
 Arguments L_T _ {_ _} _, {_ _ _}.
 
-Hint Unfold L_T : core.
-Hint Resolve cumul_In : core.
+Global Hint Unfold L_T : core.
+Global Hint Resolve cumul_In : core.
 
 Existing Class list_enumerator__T'.
 Existing Class enumerator__T'.
@@ -453,9 +453,9 @@ Proof.
   intros [? H]. eapply H.
 Defined.
 
-Hint Unfold enumerable list_enumerable : core.
+Global Hint Unfold enumerable list_enumerable : core.
 
-Hint Resolve enumerable_list_enumerable
+Global Hint Resolve enumerable_list_enumerable
      list_enumerable_enumerable : core.
 
 Lemma enumerable_enum {X} {p : X -> Prop} :
