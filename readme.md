@@ -1,4 +1,4 @@
-# "Undecidability, Incompleteness, and Completeness of Second-Order Logic in Coq"
+# CPP'22 paper: "Undecidability, Incompleteness, and Completeness of Second-Order Logic in Coq"
 
 ## Compilation:
 - tested with Coq versions 8.13.1 and 8.13.2 and Equations package 1.2.3+8.13
