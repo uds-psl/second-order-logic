@@ -122,7 +122,7 @@ Module SubstNotations.
   Notation "↑" := (shift) : subst_scope.
   Notation "f >> g" := (fun x => g (f x)) (at level 50) : subst_scope.
   Notation "f >>> g" := (fun x y => g (f x y)) (at level 50) : subst_scope.
-  Notation "x '..'" := (scons x ids) (at level 1, format "x ..") : subst_scope.
+  Notation "x '..'" := (scons x ids) (at level 4, format "x ..") : subst_scope.
 
   (* Open Scope subst_scope. *)
 

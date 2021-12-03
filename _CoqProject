@@ -19,3 +19,5 @@ Incompleteness.v
 Henkin.v
 Deduction.v
 Henkin2FOL.v
+
+FOL_completeness/FOL_facts.v

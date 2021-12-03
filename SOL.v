@@ -850,8 +850,8 @@ End Enumerability'.
 
 
 
-Notation "$ x" := (var_indi x) (at level 5, format "$ '/' x").
-Notation "i$ x" := (var_indi x) (at level 5, format "i$ '/' x").
-Notation "f$ x" := (func (var_func x)) (at level 5, format "f$ '/' x").
-Notation "p$ x" := (atom (var_pred x)) (at level 5, format "p$ '/' x").
+Notation "$ x" := (var_indi x) (at level 3, format "$ '/' x").
+Notation "i$ x" := (var_indi x) (at level 3, format "i$ '/' x").
+Notation "f$ x" := (func (var_func x)) (at level 3, format "f$ '/' x").
+Notation "p$ x" := (atom (var_pred x)) (at level 3, format "p$ '/' x").
 
