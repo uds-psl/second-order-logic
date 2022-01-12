@@ -20,4 +20,6 @@ Henkin.v
 Deduction.v
 Henkin2FOL.v
 
+FOL_completeness/Prelim.v
 FOL_completeness/FOL_facts.v
+FOL_completeness/ND.v

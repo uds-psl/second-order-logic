@@ -50,6 +50,19 @@ Inductive frag_logic_quant : Type :=
 Instance frag_operators : operators :=
   {| binop := frag_logic_binop ; quantop := frag_logic_quant |}.
 
+Global Instance frag_logic_binop_dec :
+  eq_dec frag_logic_binop.
+Proof.
+  intros [] []. now left.
+Qed.
+
+Global Instance frag_logic_quant_dec :
+  eq_dec frag_logic_quant.
+Proof.
+  intros [] []. now left.
+Qed.
+
+
 #[export] Hint Immediate frag_operators : typeclass_instances.
 
 Notation "∀ Phi" := (@quant _ _ frag_operators _ All Phi) (at level 50).

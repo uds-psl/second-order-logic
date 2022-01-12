@@ -3,7 +3,7 @@
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-Require Export FOL FOL_facts Vector List ListLib Lia Setoid Decidable.
+Require Export FOL FOL_facts Vector List ListLib Lia Setoid Prelim Decidable.
 
 Inductive peirce := class | intu.
 Existing Class peirce.
@@ -57,7 +57,6 @@ Section ND_def.
       A ⊢ phi -> A <<= B -> B ⊢ phi.
     Proof.
       induction 1 in B |-*; eauto using incl_map.
-      intros HA. apply II. apply IHprv. firstorder.
     Qed.
 
     Theorem subst_Weak A phi xi :
@@ -83,6 +82,7 @@ Section ND_def.
   Lemma cycle_shift_shift n phi :
     unused n phi -> phi[cycle_shift n] = phi[↑].
   Proof.
+
     intros H. apply (subst_unused_single H). intros m ?. unfold cycle_shift. now decide (n = m).
   Qed.
 
@@ -205,17 +205,17 @@ Ltac ospecialize n t :=
 
 Ltac ouse H := eapply Weak; [apply H |]; intuition.
 Ltac oimport H := eapply prv_cut; [ouse H |].
-Ltac oassert form := eapply (@prv_cut _ _ _ _ form).
+Ltac oassert form := eapply (@prv_cut _ _ _ _ _ form).
 Ltac oexfalso := apply Exp.
-Ltac opeirce form := eapply IE; [apply (@Pc _ _ _ _ form) | apply II].
+Ltac opeirce form := eapply IE; [apply (@Pc _ _ _ _ _ form) | apply II].
 
 Lemma DN {Σf : funcs_signature} {Σp : preds_signature} A phi :
   A ⊢CE ¬ (¬ phi) -> A ⊢CE phi.
 Proof.
-  intros H. oimport H. opeirce Fal. oexfalso. oapply 1. ctx.
+  intros H. oimport H. opeirce falsity. oexfalso. oapply 1. ctx.
 Qed.
 
-Lemma DN_T {Sigma : Signature} T phi :
+Lemma DN_T {Σf : funcs_signature} {Σp : preds_signature} T phi :
   T ⊩CE ¬ (¬ phi) -> T ⊩CE phi.
 Proof.
   intros (A & HA1 & HA2 % DN). now use_theory A.
@@ -223,7 +223,7 @@ Qed.
 
 Ltac oindirect := apply DN, II.
 
-Lemma ExE {Sigma : Signature} A phi psi :
+Lemma ExE {Σf : funcs_signature} {Σp : preds_signature} A phi psi :
   A ⊢CE (∃ phi) -> (phi :: [phi[↑] | phi ∈ A]) ⊢CE psi[↑] -> A ⊢CE psi.
 Proof.
   intros Hex Hinst.
@@ -231,18 +231,18 @@ Proof.
   ointros. oapply 2. ouse Hinst.
 Qed.
 
-Ltac odestruct n := eapply ExE; [ctx_index n|]; cbn; asimpl.
+Ltac odestruct n := eapply ExE; [ctx_index n|]; cbn.
 
-Lemma ExI {Sigma : Signature} {p : peirce} {b : bottom} A t phi :
+Lemma ExI {Σf : funcs_signature} {Σp : preds_signature} {p : peirce} {ff : falsity_flag} A t phi :
   A ⊢ phi [t..] -> A ⊢ ∃ phi.
 Proof.
   intros Hc. apply II. ospecialize 0 t. oapply 0. ouse Hc.
 Qed.
 
 Ltac oexists t :=
-  eapply (@ExI _ _ _ _ t); cbn; asimpl.
+  eapply (@ExI _ _ _ _ _ t); cbn.
 
-Lemma AXM {Sigma : Signature} A phi psi :
+Lemma AXM {Σf : funcs_signature} {Σp : preds_signature} A phi psi :
   (phi :: A) ⊢CE psi -> (¬ phi :: A) ⊢CE psi -> A ⊢CE psi.
 Proof.
   intros Ht Hf. oindirect. oassert (¬ phi). ointros. oapply 1.
@@ -250,25 +250,20 @@ Proof.
 Qed.
 
 Ltac oxm form :=
-  apply (@AXM _ _ form).
+  apply (@AXM _ _ _ form).
 
-Lemma DP {Sigma : Signature} phi :
-  [] ⊢CE ∃ (phi --> (∀ phi)[↑]).
+Lemma DP {Σf : funcs_signature} {Σp : preds_signature} {ff : falsity_flag} phi :
+  [] ⊢CE ∃ (phi ~> (∀ phi)[↑]).
 Proof.
   oxm (∃ ¬ phi).
-  - odestruct 0. oexists (var_term 0). ointros. oexfalso. oapply 1. ctx.
-  - oexists (var_term 0). ointros. oindirect. oapply 2. oexists (var_term 0). ctx.
+  - odestruct 0. oexists (var 0). ointros. oexfalso. oapply 1. ctx.
+    left. rewrite !subst_comp. apply subst_ext. now intros [|n].
+  - oexists (var 0). ointros. oindirect. oapply 2. oexists (var 0). ctx.
+    left. rewrite !subst_comp. f_equal. apply subst_ext. now intros [|n].
 Qed.
 
 (* **** Theory manipulation *)
 
-Definition tmap {S1 S2 : Signature} (f : @form S1 -> @form S2) (T : @theory S1) : @theory S2 :=
-  fun phi => exists psi, T psi /\ f psi = phi.
-
-Lemma enum_tmap {S1 S2 : Signature} (f : @form S1 -> @form S2) (T : @theory S1) L :
-  enum T L -> enum (tmap f T) (L >> List.map f).
-Proof.
-  intros []. split; unfold ">>".
 Hint Constructors vec_in.
 
 Infix "⊏" := contains_L (at level 20).
@@ -278,33 +273,22 @@ Infix "⋄" := extend (at level 20).
 
 Hint Resolve contains_nil contains_cons contains_cons2 contains_app : contains_theory.
 Hint Resolve contains_extend1 contains_extend2 contains_extend3 : contains_theory.
-Ltac use_theory A := exists A; split; [eauto 15 with contains_theory|].
+Ltac use_theory A := exists A; split; [eauto 4 with contains_theory|].
 
-  - intros n. destruct (H n) as [A ->]. exists (List.map f A). apply map_app.
-  - intros x; split.
-    + intros (phi & [m Hin] % H0 & <-). exists m. apply in_map_iff. firstorder.
-    + intros (m & (phi & <- & Hphi) % in_map_iff). firstorder.
-Qed.
-
-Lemma tmap_contains_L {S1 S2 : Signature} (f : @form S1 -> @form S2) T A :
-  contains_L A (tmap f T) -> exists B, A = List.map f B /\ contains_L B T.
-Proof.
-  induction A.
-  - intros. now exists List.nil.
-  - intros H. destruct IHA as (B & -> & HB). 1: firstorder.
-    destruct (H a (or_introl eq_refl)) as (b & Hb & <-).
-    exists (b :: B). split. 1: auto. intros ? []; subst; auto.
-Qed.
 
 Section TheoryManipulation.
-  Context {Sigma : Signature}.
-  Context {p : peirce} {b : bottom}.
-  Context {HF : eq_dec Funcs} {HP : eq_dec Preds}.
+  Context {Σf : funcs_signature} {Σp : preds_signature}.
+  Context {p : peirce} {ff : falsity_flag}.
+  Context {HF : eq_dec Σf} {HP : eq_dec Σp}.
 
-  
+  Instance eq_dec_eq_dec2 {X} :
+    eq_dec X -> eq_dec2 X.
+  Proof.
+    intros H. apply H.
+  Qed.
 
   Lemma prv_T_impl T phi psi :
-    (T ⋄ phi) ⊩ psi -> T ⊩ (phi --> psi).
+    (T ⋄ phi) ⊩ psi -> T ⊩ (phi ~> psi).
   Proof.
     intros (A & HA1 & HA2). exists (rem A phi); split.
     - intros f [[] % HA1 Hf2] % in_rem_iff; subst; intuition.
@@ -335,8 +319,8 @@ End TheoryManipulation.
 (* **** Refutation completeness *)
 
 Section RefutationComp.
-  Context {Sigma : Signature}.
-  Context {HF : eq_dec Funcs} {HP : eq_dec Preds}.
+  Context {Σf : funcs_signature} {Σp : preds_signature}.
+  Context {HF : eq_dec Σf} {HP : eq_dec Σp}.
   
   Lemma refutation_prv T phi :
     T ⊩CE phi <-> (T ⋄ ¬ phi) ⊩CE ⊥.
