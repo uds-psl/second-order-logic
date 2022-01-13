@@ -22,7 +22,7 @@ Proof.
   intros b b'. unfold dec. decide equality.
 Qed.
 
-Ltac capply H := eapply H; try eassumption.
+Ltac capply H := eapply H; resolve_existT; try eassumption.
 
 Ltac resolve_existT := try
   match goal with

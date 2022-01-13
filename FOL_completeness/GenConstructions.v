@@ -4,6 +4,8 @@
 
 Require Export ND.
 
+Existing Class enumerable__T.
+
 Section GenCons.
   Context {Σf : funcs_signature} {Σp : preds_signature}.
   Context {HdF : eq_dec Σf} {HdP : eq_dec Σp}.
@@ -194,12 +196,44 @@ Section GenCons.
   Definition DPexp2 phi := exp_axiom (phi [(var O) .: (S >> (S >> var))]).
   Definition DPexp3 phi := exp_axiom phi.
 
+  Lemma up_shift phi t sigma :
+    phi[up ↑][t.:sigma] = phi[t.:S>>sigma].
+  Proof.
+    rewrite subst_comp. apply subst_ext. intros [|]; reflexivity.
+  Qed.
+
+  Lemma help phi :
+    phi[up ↑][up (up ↑)][up $0..] = phi[$0 .: S >> ↑].
+  Proof.
+    rewrite !subst_comp. apply subst_ext. now intros [|].
+  Qed.
+
+  Lemma help2 phi :
+    phi[$0.:↑] = phi.
+  Proof.
+    apply subst_id. now intros [].
+  Qed.
+  
+  Lemma help3 phi x :
+    phi[up ↑][up $x..] = phi.
+  Proof.
+    rewrite !subst_comp. apply subst_id. now intros [|].
+  Qed.
+
+  Lemma help4 phi :
+    phi[up ↑][$0..] = phi.
+  Proof.
+    rewrite !subst_comp. apply subst_id. now intros [|].
+  Qed.
+
   Lemma GDP A phi :
     DPexp1 phi el A -> DPexp2 phi el A -> DPexp3 phi el A -> A ⊢G ∃ (phi ~> (∀ phi)[↑]).
   Proof.
     intros ? H1 H2. do 2 apply exp_axiom_lift in H1. do 1 apply exp_axiom_lift in H2. oxm (∃ (¬ phi)).
-    - odestruct 0. clean_GBot. oexists (var 0). ointros. oexfalso. clean_GBot. oapply 1. ctx.
-    - oexists (var_term 0). ointros. oindirect. clean_GBot. oapply 2. oexists (var_term 0). clean_GBot. ctx.
+    - odestruct 0. clean_GBot. oexists (var 0). ointros. rewrite help. oexfalso.
+      clean_GBot. rewrite up_shift, help2. oapply 1. ctx.
+    - oexists (var 0). ointros. rewrite help3. oindirect. clean_GBot. oapply 2. oexists (var 0).
+      clean_GBot. rewrite help4. ctx.
   Qed.
 
   (* **** Henkin *)
@@ -213,20 +247,20 @@ Section GenCons.
     Hypothesis He : forall phi, exists n, e n = phi.
     Hypothesis Hunused : forall n m, n <= m -> unused m (e n).
 
-    Definition henkin_axiom phi := (phi --> ((∀ phi)[↑])). 
+    Definition henkin_axiom phi := (phi ~> ((∀ phi)[↑])). 
 
     Lemma henkin_axiom_unused n phi :
       unused n (∀ phi) -> unused (S n) (¬ (henkin_axiom phi)).
     Proof.
       inversion 1. unfold henkin_axiom. constructor; [| apply GBot_closed].
-      capply uf_Impl. capply unused_after_subst. subst. intros x.
+      capply uf_Impl. apply unused_after_subst. subst. intros x.
       decide (x = n). 1: subst; now left. right; constructor; congruence.
     Qed.
 
     Fixpoint henkin n :=
       match n with
       | O => T
-      | S n => henkin n ⋄ subst_form ((var_term n)..) (henkin_axiom (e n))
+      | S n => henkin n ⋄ subst_form ((var n)..) (henkin_axiom (e n))
       end.
 
     Lemma henkin_unused n :
@@ -241,7 +275,7 @@ Section GenCons.
         destruct H1. capply IHn. omega. subst. constructor.
         + apply unused_after_subst. intros []; comp. 1: right; constructor; omega.
           decide (S m = n0). 1: subst; now left. right; constructor; omega.
-        + constructor. asimpl. assumption.
+        + constructor. rewrite help3. assumption.
     Qed.
 
     Lemma henkin_le m n :
@@ -258,8 +292,8 @@ Section GenCons.
       refine (union_econsistent _ henkin_le). intros n.
       assert (unused n (e n)) by now apply Hunused.
       cbn; intros (A & HA1 & HA2) % prv_T_impl.
-      rewrite <- (subst_unused_closed' ((var_term n)..) GBot_closed) in HA2.
-      apply -> (@nameless_equiv Sigma class b _ _ A (¬ (henkin_axiom (e n))) n) in HA2.
+      rewrite <- (subst_unused_closed' ((var n)..) GBot_closed) in HA2.
+      apply -> (@nameless_equiv _ _ class b _ _ A (¬ (henkin_axiom (e n))) n) in HA2.
       - use_theory (exp_axiom GBot :: DPexp1 (e n) :: DPexp2 (e n) :: DPexp3 (e n) :: A). shelve.
         oimport (@GDP (exp_axiom GBot :: DPexp1 (e n) :: DPexp2 (e n) :: DPexp3 (e n) :: A) (e n)).
         odestruct 0. oimport HA2. shelve. clean_GBot. oapply 0. ctx.
@@ -276,10 +310,10 @@ Section GenCons.
     Lemma Henkin_is_Henkin :
       is_Henkin Henkin.
     Proof.
-      intros T' phi HT' Hall. destruct (He phi) as [n Hn]. destruct (Hall (var_term n)) as (A & HA1 & HA2).
-      use_theory (subst_form ((var_term n)..) (henkin_axiom phi) :: A).
+      intros T' phi HT' Hall. destruct (He phi) as [n Hn]. destruct (Hall (var n)) as (A & HA1 & HA2).
+      use_theory (subst_form ((var n)..) (henkin_axiom phi) :: A).
       - intros ? [<- |]; [| intuition]; subst. apply HT'. exists (S n). now right.
-      - oimport HA2. comp. oapply 1. ctx.
+      - oimport HA2. comp. rewrite help3. oapply 1. ctx.
     Qed.
 
     Lemma is_Henkin_inherit T1 T2 :
@@ -395,11 +429,11 @@ Section GenCons.
     Qed.
 
     Lemma Omega_impl phi psi :
-      phi --> psi ∈ Omega <-> (phi ∈ Omega -> psi ∈ Omega).
+      phi ~> psi ∈ Omega <-> (phi ∈ Omega -> psi ∈ Omega).
     Proof.
       split.
       - intros Himp Hphi. apply Omega_prv.
-        use_theory [phi --> psi; phi]. oapply 0. ctx.
+        use_theory [phi ~> psi; phi]. oapply 0. ctx.
       - intros H. apply maximal_Omega. intros (A & HA1 & HA2) % prv_T_impl.
         apply (prv_T_remove (phi := psi)).
         + apply elem_prv, H, Omega_prv.
@@ -422,16 +456,16 @@ End GenCons.
 (* **** Conclusion *)
 
 Section Composition.
-  Context {Sigma : Signature}.
-  Context {HdF : eq_dec Funcs} {HdP : eq_dec Preds}.
-  Context {HeF : enumT Funcs} {HeP : enumT Preds}.
+ Context {Σf : funcs_signature} {Σp : preds_signature}.
+  Context {HdF : eq_dec Σf} {HdP : eq_dec Σp}.
+  Context {HeF : enumerable__T Σf} {HeP : enumerable__T Σp}.
 
   Structure ConstructionInputs : Type :=
     {
+      variant : falsity_flag ;
+
       NBot : form ;
       NBot_closed : closed NBot ;
-      
-      variant : bottom ;
 
       In_T : theory ;
       In_T_closed : closed_T In_T ;
@@ -444,27 +478,27 @@ Section Composition.
   Structure ConstructionOutputs (In : ConstructionInputs) :=
     {
       Out_T : theory ;
-      Out_T_econsistent : @econsistent Sigma (variant In) (NBot In) (In_T In) Out_T ;
-      Out_T_sub : In_T In ⊑ Out_T ;
+      Out_T_econsistent : @econsistent _ _ (variant In) (NBot In) (@In_T In) Out_T ;
+      Out_T_sub : @In_T In ⊑ Out_T ;
 
-      Out_T_prv : forall phi, @tprv Sigma class (variant In) Out_T phi -> phi ∈ Out_T ;
+      Out_T_prv : forall phi, @tprv _ _ (variant In) class Out_T phi -> phi ∈ Out_T ;
       Out_T_all : forall phi, ∀ phi ∈ Out_T <-> (forall t, phi[t..] ∈ Out_T) ;
-      Out_T_impl : forall phi psi, phi --> psi ∈ Out_T <-> (phi ∈ Out_T -> psi ∈ Out_T)
+      Out_T_impl : forall phi psi, phi ~> psi ∈ Out_T <-> (phi ∈ Out_T -> psi ∈ Out_T)
     }.
 
   Lemma construct_construction (In : ConstructionInputs) :
     ConstructionOutputs In.
   Proof.
-    destruct In as [NBot NBot_closed system T T_closed e e_enum e_unused].
+    destruct In as [system NBot NBot_closed T T_closed e e_enum e_unused].
     eexists (Omega NBot e (Henkin (Exp NBot T e) e)); cbn.
-    + capply econsistency_trans. capply econsistency_trans. capply Exp_econsistent.
-      capply Henkin_consistent. capply Exp_closed. capply Exp_exploding. capply econsistent_Omega.
+    + eapply econsistency_trans. eapply econsistency_trans. eapply Exp_econsistent.
+      eapply Henkin_consistent; intuition. capply Exp_closed. capply Exp_exploding. eapply econsistent_Omega.
     + transitivity (Henkin (Exp NBot T e) e). transitivity (Exp NBot T e).
-      apply Exp_sub. apply Henkin_T. apply Omega_T.
-    + capply Omega_prv.
-    + capply Omega_all. capply Henkin_is_Henkin.
-    + capply Omega_impl. capply exploding_inherit.
+      eapply Exp_sub. eapply Henkin_T. eapply Omega_T.
+    + eapply Omega_prv; trivial.
+    + eapply Omega_all; trivial. eapply Henkin_is_Henkin; trivial.
+    + eapply Omega_impl; trivial. eapply exploding_inherit.
       - capply Exp_exploding.
-      - capply Henkin_T.
+      - eapply Henkin_T.
   Qed.
 End Composition.

@@ -59,6 +59,12 @@ Section ND_def.
       induction 1 in B |-*; eauto using incl_map.
     Qed.
 
+    Lemma Weak_T T1 T2 phi :
+      T1 ⊩ phi -> T1 ⊑ T2 -> T2 ⊩ phi.
+    Proof.
+      intros (A & HA1 & HA2) HT2. exists A; firstorder.
+    Qed.
+
     Theorem subst_Weak A phi xi :
       A ⊢ phi -> [phi[xi] | phi ∈ A] ⊢ phi[xi].
     Proof.
