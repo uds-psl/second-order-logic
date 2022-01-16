@@ -546,6 +546,7 @@ Section Enumerability.
     match n with
     | 0 => match ff with falsity_on => [falsity] | falsity_off => [] end
     | S n => L_form n
+              ++ match ff with falsity_on => [falsity] | falsity_off => [] end
               ++ concat ([ [ atom P v | v ∈ vecs_from (L_term n) (ar_preds P) ] | P ∈ L_T n])
               ++ concat ([ [ bin op phi psi | (phi, psi) ∈ (L_form n × L_form n) ] | op ∈ L_T n])
               ++ concat ([ [ quant op phi | phi ∈ L_form n ] | op ∈ L_T n])
@@ -563,12 +564,12 @@ Section Enumerability.
     intros phi. induction phi.
     - exists 1. cbn; eauto.
     - rename t into v. destruct (el_T P) as [m Hm], (@vec_forall_cml term L_term _ v) as [m' Hm']; eauto using enum_term.
-      exists (S (m + m')); cbn. in_app 2. eapply in_concat_iff. eexists. split.
+      exists (S (m + m')); cbn. in_app 3. eapply in_concat_iff. eexists. split.
       2: in_collect P... eapply in_map. rewrite <- vecs_from_correct in *. intuition...
     - destruct (el_T b0) as [m Hm], IHphi1 as [m1], IHphi2 as [m2]. exists (1 + m + m1 + m2). cbn.
-      in_app 3. apply in_concat. eexists. split. apply in_map... in_collect (pair phi1 phi2)...
+      in_app 4. apply in_concat. eexists. split. apply in_map... in_collect (pair phi1 phi2)...
     - destruct (el_T q) as [m Hm], IHphi as [m' Hm']. exists (1 + m + m'). cbn -[L_T].
-      in_app 4. apply in_concat. eexists. split. apply in_map... in_collect phi...
+      in_app 5. apply in_concat. eexists. split. apply in_map... in_collect phi...
   Qed.
 
 End Enumerability.

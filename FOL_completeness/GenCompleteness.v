@@ -1,4 +1,4 @@
-Require Export GenConstructions Consistency FOL_completeness.Tarski.
+Require Export Enumeration GenConstructions Consistency FOL_completeness.Tarski.
 (*From Undecidability.FOLC Require Import Stability.*)
 
 (** ** Completeness *)
@@ -8,11 +8,20 @@ Require Export GenConstructions Consistency FOL_completeness.Tarski.
 Section Completeness.
   Context {Σf : funcs_signature} {Σp : preds_signature}.
   Context {HdF : eq_dec Σf} {HdP : eq_dec Σp}.
-  Context {HeF : enumerable__T Σf} {HeP : enumerable__T Σp}.
+  Variable eF : nat -> option Σf.
+  Context {HeF : enumerator__T eF Σf}.
+  Variable eP : nat -> option Σp.
+  Context {HeP : enumerator__T eP Σp}.
 
-  Hypothesis form_enum : nat -> form falsity_on.
+  Local Instance enumerable__T_Σf : enumerable__T Σf.
+  Proof. exists eF. apply HeF. Qed.
+
+  Local Instance enumerable__T_Σp : enumerable__T Σp.
+  Proof. exists eP. apply HeP. Qed.
+
+  (* Hypothesis form_enum : nat -> form falsity_on.
   Hypothesis form_enum_enumerates : forall phi, exists n : nat, form_enum n = phi.
-  Hypothesis form_enum_fresh : forall n m, n <= m -> unused m (form_enum n).
+  Hypothesis form_enum_fresh : forall n m, n <= m -> unused m (form_enum n). *)
 
   Hint Constructors unused.
   Existing Instance falsity_on. 
@@ -30,9 +39,9 @@ Section Completeness.
         In_T := T ;
         In_T_closed := T_closed ;
 
-        GenConstructions.enum := form_enum ;
-        GenConstructions.enum_enum := form_enum_enumerates ;
-        GenConstructions.enum_unused := form_enum_fresh
+        GenConstructions.enum := form_enum eF eP;
+        GenConstructions.enum_enum := form_enum_enumerates eF eP ;
+        GenConstructions.enum_unused := form_enum_fresh eF eP
       |}.
 
     Definition output_bot := construct_construction input_bot.

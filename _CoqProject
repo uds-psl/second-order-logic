@@ -22,6 +22,7 @@ Henkin2FOL.v
 
 FOL_completeness/Prelim.v
 FOL_completeness/FOL_facts.v
+FOL_completeness/Enumeration.v
 FOL_completeness/ND.v
 FOL_completeness/GenConstructions.v
 FOL_completeness/Consistency.v
