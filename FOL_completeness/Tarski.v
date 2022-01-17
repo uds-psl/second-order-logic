@@ -39,15 +39,9 @@ Section Tarski.
 
     Variable domain : Type.
 
-    Class interp := B_I
-      {
-        i_func : forall f : syms, vec domain (ar_syms f) -> domain ;
-        i_atom : forall P : preds, vec domain (ar_preds P) -> Prop ;
-      }.
+    Notation env := (nat -> domain).
 
-    Definition env := nat -> domain.
-
-    Context {I : interp}.
+    Context {I : interp domain}.
 
     Fixpoint eval (rho : env) (t : term) : domain :=
       match t with

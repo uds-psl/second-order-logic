@@ -31,12 +31,12 @@ Section Prv.
   Lemma DN A phi :
     A ⊢ ¬ (¬ phi) -> A ⊢ phi.
   Proof.
-  Admitted.
-  
-  Lemma AXM A phi psi :
-    (phi :: A) ⊢ psi -> (¬ phi :: A) ⊢ psi -> A ⊢ psi.
-  Proof.
-  Admitted.
+    intros H. eapply IE.
+    - apply (Peirce _ _ ⊥).
+    - apply II. apply Exp. eapply IE.
+      + apply (Weak _ _ _ H). auto.
+      + apply Ctx. auto.
+  Qed.
 
 End Prv.
 
@@ -69,7 +69,7 @@ Ltac ospecialize n t :=
 
 Ltac ouse H := eapply Weak; [apply H |]; intuition.
 Ltac oimport H := eapply prv_cut; [ouse H |].
-Ltac oassert form := eapply (@prv_cut _ _ _ _ form).
+Ltac oassert form := eapply (@prv_cut _ _ _ form).
 Ltac oexfalso := apply Exp.
 Ltac opeirce form := eapply IE; [apply (@Pc _ _ _ _ form) | apply II].
 
@@ -78,6 +78,13 @@ Ltac oindirect := apply DN, II.
 Ltac osplit := eapply CI.
 Ltac oleft := eapply DI1.
 Ltac oright := eapply DI2.
+
+Lemma AXM {Σ_funcs : funcs_signature} {Σ_preds : preds_signature} A phi psi :
+  (phi :: A) ⊢ psi -> (¬ phi :: A) ⊢ psi -> A ⊢ psi.
+Proof.
+  intros Ht Hf. oindirect. oassert (¬ phi). ointros. oapply 1.
+  ouse Ht. oapply 1. ouse Hf.
+Qed.
 
 Ltac oxm form :=
   apply (@AXM _ _ _ form).
@@ -152,25 +159,26 @@ Section DM.
     | ⊥ => ⊥
     end.
 
-  Lemma convert_embed phi :
+  Lemma convert_embed {ff : falsity_flag} phi :
     convert (embed phi) = phi.
   Proof.
-    induction phi; cbn; intuition congruence.
+    induction phi using form_ind_falsity; try destruct b0; try destruct q; cbn; intuition congruence.
   Qed.
 
-  Definition DMT phi :=
+  Definition DMT {ff : falsity_flag} phi :=
     convert (DM phi).
 
-  Lemma embed_DMT phi :
+  Lemma embed_DMT {ff : falsity_flag} phi :
     embed (DMT phi) = DM phi.
   Proof.
-    unfold DMT. induction phi; cbn; intuition congruence.
+    unfold DMT. induction phi; try destruct b0; try destruct q; cbn; intuition congruence.
   Qed.
 
-  Lemma DMT_subst sigma phi :
+  Lemma DMT_subst {ff : falsity_flag} sigma phi :
     DMT phi[sigma] = (DMT phi)[sigma].
   Proof.
-    induction phi in sigma |- *; cbn; unfold DMT in *.
+    revert sigma. induction phi; intros sigma;
+      try destruct b0; try destruct q; cbn; unfold DMT in *.
     1, 2: reflexivity.
     1, 2, 3: now rewrite IHphi1, IHphi2.
     1, 2: now rewrite IHphi.
@@ -182,10 +190,36 @@ Section DM.
     now intros ->.
   Qed.
 
-  Lemma DMT_prv A phi :
-    A ⊢CE phi -> @ND.prv _ ND.class ND.expl (map DMT A) (DMT phi).
+  (*Lemma prv_ind_falsity :
+    forall {Σf : funcs_signature} {Σp : preds_signature} (P : list form -> form -> Prop),
+      (forall A (phi psi : form), (phi :: A) ⊢ psi -> P (phi :: A) psi -> P A (phi ~> psi)) ->
+      (forall A (phi psi : form),
+          A ⊢ (phi ~> psi) -> P A (phi ~> psi) -> A ⊢ phi -> P A phi -> P A psi) ->
+      (forall A (phi : form), [p[↑] | p ∈ A] ⊢ phi -> P (map (subst_form ↑) A) phi -> P A (∀ phi)) ->
+      (forall A (t : term) (phi : form), A ⊢ (∀ phi) -> P A (∀ phi) -> P A phi[t..]) ->
+      (forall A (t : term) (phi : form), A ⊢ phi[t..] -> P A phi[t..] -> P A (∃ phi)) ->
+      (forall A (phi psi : form),
+          A ⊢ (∃ phi) -> P A (∃ phi) -> (phi :: [p[↑] | p ∈ A]) ⊢ psi[↑] -> P (phi :: [p[↑] | p ∈ A]) psi[↑] -> P A psi) ->
+      (forall A (phi : form), A ⊢ ⊥ -> P A ⊥ -> P A phi) ->
+      (forall A (phi : form), phi el A -> P A phi) ->
+      (forall A (phi psi : form),
+          A ⊢ phi -> P A phi -> A ⊢ psi -> P A psi -> P A (phi ∧ psi)) ->
+      (forall A (phi psi : form), A ⊢ (phi ∧ psi) -> P A (phi ∧ psi) -> P A phi) ->
+      (forall A (phi psi : form), A ⊢ (phi ∧ psi) -> P A (phi ∧ psi) -> P A psi) ->
+      (forall A (phi psi : form), A ⊢ phi -> P A phi -> P A (phi ∨ psi)) ->
+      (forall A (phi psi : form), A ⊢ psi -> P A psi -> P A (phi ∨ psi)) ->
+      (forall A (phi psi theta : form),
+          A ⊢ (phi ∨ psi) ->
+          P A (phi ∨ psi) -> (phi :: A) ⊢ theta -> P (phi :: A) theta -> (psi :: A) ⊢ theta -> P (psi :: A) theta -> P A theta) ->
+      (forall A (phi psi : form), P A (((phi ~> psi) ~> phi) ~> phi)) ->
+      forall l (f14 : form), l ⊢ f14 -> P l f14.
   Proof.
-    induction 1; cbn in *.
+  Admitted.*)
+
+  Lemma DMT_prv {ff : falsity_flag} A phi :
+    prv ff A phi -> (map DMT A) ⊢CE (DMT phi).
+  Proof.
+    induction 1; intros; cbn in *.
     - apply ND.II. apply (ND.Weak IHprv). auto.
     - apply (ND.IE IHprv1 IHprv2).
     - apply ND.AllI. apply (ND.Weak IHprv).
@@ -212,64 +246,71 @@ Section DM.
     - apply ND.Pc.
   Qed.
 
-  Lemma embed_subst sigma phi :
+  Lemma embed_subst {ff : falsity_flag} sigma phi :
     embed phi[sigma] = (embed phi)[sigma].
   Proof.
     induction phi in sigma |- *; cbn; try reflexivity.
+    1: destruct b0. 2: destruct q.
     - now rewrite IHphi1, IHphi2.
     - now rewrite IHphi.
   Qed.
 
   Lemma embed_prv A phi :
-    @ND.prv _ ND.class ND.expl A phi -> (map embed A) ⊢CE (embed phi).
+    A ⊢CE phi -> (map embed A) ⊢ (embed phi).
   Proof.
     induction 1; cbn.
-    - apply II. apply (Weak IHprv). reflexivity.
-    - apply (IE IHprv1 IHprv2).
-    - apply AllI. apply (Weak IHprv).
+    - apply II. apply (Weak _ _ _ IHprv). reflexivity.
+    - apply (IE _ _ _ IHprv1 IHprv2).
+    - apply AllI. apply (Weak _ _ _ IHprv).
       rewrite !map_map. apply incl_eq, map_ext, embed_subst.
-    - setoid_rewrite embed_subst. apply (AllE t IHprv).
+    - setoid_rewrite embed_subst. apply (AllE _ t _ IHprv).
     - apply Exp, IHprv.
-    - apply Pc.
     - apply Ctx, in_map, H.
+    - apply Peirce.
   Qed.
 
-  Definition DN := forall P, ~ ~ P -> P.
+  Definition DNE := forall P, ~ ~ P -> P.
 
-  Definition XM := forall P, P \/ ~ P.
+  Definition LEM := forall P, P \/ ~ P.
 
-  Lemma XM_DN :
-    XM <-> DN.
+  Lemma LEM_DNE :
+    LEM <-> DNE.
   Proof.
     split.
     - intros H X HX. destruct (H X); tauto.
     - intros H X. apply H. tauto.
   Qed.
 
-  Lemma DMT_sat D (I : interp D) rho phi :
-    DN -> standard_bot I -> sat rho phi <-> GenTarski.sat rho (DMT phi).
+  Notation "rho ⊨' phi" := (FOL_completeness.Tarski.sat _ rho phi) (at level 50).
+
+  Lemma DMT_sat D (I : FOL.interp D) rho phi :
+    DNE -> sat rho phi <-> rho ⊨' (DMT phi).
   Proof.
-    intros HDN HI. unfold standard_bot in HI.
-    induction phi in rho |- *; cbn; try specialize (IHphi1 rho); try specialize (IHphi2 rho); try tauto.
+    intros HDN. revert rho.
+    induction phi using form_ind_falsity; intros rho.
+    all: try destruct b0; try destruct q; cbn.
+    all: try specialize (IHphi1 rho); try specialize (IHphi2 rho); try tauto.
     - split; try tauto. split; apply HDN; tauto.
     - split; try tauto. intros H. apply HDN. tauto.
     - firstorder tauto.
     - split; try firstorder tauto. intros H. apply HDN. firstorder tauto.
   Qed.
 
-  Definition DMTT T :=
+  Definition DMTT (T : form -> Prop) :=
     fun phi => exists psi, T psi /\ phi = DMT psi.
 
-  Lemma DMT_valid T phi :
-    DN -> valid_T classical T phi -> DMTT T ⊫S DMT phi.
+  Notation "T ⊨= phi" := (forall D (I : interp D) rho, (forall psi, T psi -> rho ⊨ psi) -> rho ⊨ phi) (at level 50).
+  Notation "T ⊨=' phi" := (forall D (I : interp D) rho, (forall psi, T psi -> rho ⊨' psi) -> rho ⊨' phi) (at level 50).
+
+  Lemma DMT_valid (T : form -> Prop) phi :
+    DNE -> T ⊨= phi -> (DMTT T) ⊨=' DMT phi.
   Proof.
-    intros HDN H D I [H1 H2] rho HT. apply DMT_sat; trivial. apply H.
-    - intros rho' psi theta. cbn. apply HDN. tauto.
+    intros HDN H D I rho HT. apply DMT_sat; trivial. apply H.
     - intros psi HP. apply DMT_sat; trivial. apply HT. now exists psi.
   Qed.
 
   Lemma DMT_incl T A :
-    FOL.contains_L A (DMTT T) -> exists B, B ⊏ T /\ A = map DMT B.
+    (forall phi, phi el A -> (DMTT T) phi) -> exists B, (forall phi, phi el B -> T phi) /\ A = map DMT B.
   Proof.
     induction A; intros H.
     - exists nil. split; trivial. now intros phi [].
@@ -278,12 +319,12 @@ Section DM.
       exists (phi::B). split; trivial. intros psi [->|]; auto.
   Qed.
 
-  Lemma prv_cut_list {p b} A B phi :
-    A ⊢(p, b) phi -> (forall psi, psi el A -> B ⊢(p, b) psi) -> B ⊢(p, b) phi.
+  Lemma prv_cut_list A B phi :
+    A ⊢ phi -> (forall psi, psi el A -> B ⊢ psi) -> B ⊢ phi.
   Proof.
     induction 1 in B |- *; intros HA.
     - apply II, IHprv. intros theta [->|HT]; try now ctx. ouse (HA theta HT).
-    - eapply IE; eauto.
+    - eapply IE; try now apply IHprv1. now apply IHprv2.
     - apply AllI, IHprv. intros psi [theta[<- HT]] % in_map_iff. now apply subst_Weak, HA.
     - now apply AllE, IHprv.
     - now eapply ExI, IHprv.
@@ -299,31 +340,30 @@ Section DM.
     - eapply DE; try now apply IHprv1.
       + apply IHprv2. intros theta' [->|HT]; try now ctx. ouse (HA theta' HT).
       + apply IHprv3. intros theta' [->|HT]; try now ctx. ouse (HA theta' HT).
-    - apply Pc.
+    - apply Peirce.
   Qed.
 
-  Lemma DMT_unused phi n :
+  (*Lemma DMT_unused phi n :
     unused n phi -> FOL.unused n (DMT phi).
   Proof.
     induction 1; cbn; repeat constructor; assumption.
-  Qed.
+  Qed.*)
 
   Lemma DMT_closed phi :
-    closed phi -> FOL.closed (DMT phi).
+    bounded 0 phi -> bounded 0 (DMT phi).
   Proof.
-    intros H n. apply DMT_unused, H.
-  Qed.
+  Admitted.
   
-  Context {HdF : eq_dec Funcs} {HdP : eq_dec Preds}.
-  Context {HeF : enumT Funcs} {HeP : enumT Preds}.
+  Context {HdF : eq_dec Σ_funcs} {HdP : eq_dec Σ_preds}.
+  Context {HeF : enumerable__T Σ_funcs} {HeP : enumerable__T Σ_preds}.
 
-  Theorem full_completeness T phi :
-    DN -> closed_T T -> closed phi -> valid_T classical T phi -> T ⊩CE phi.
+  Theorem full_completeness (T : form -> Prop) phi :
+    DNE -> T ⊨= phi -> exists A, (forall phi, phi el A -> T phi) /\ A ⊢ phi.
   Proof.
-    intros HDN HT HP H % DMT_valid; trivial.
-    apply semi_completeness_standard in H.
-    - apply HDN in H as [A[H1 H2 % embed_prv]]. apply DMT_incl in H1 as [B[HB ->]].
-      exists B. split; trivial. apply DM_prv. rewrite embed_DMT in H2. apply (prv_cut_list H2).
+    intros HDN H'. assert (H : (DMTT T) ⊨=' DMT phi) by now apply DMT_valid.
+    destruct HeF, HeP. eapply semi_completeness_standard in H; eauto.
+    - apply HDN in H as [A[HA1 HA2 % embed_prv]]. apply DMT_incl in HA1 as [B[HB ->]].
+      exists B. split; trivial. apply DM_prv. rewrite embed_DMT in HA2. apply (prv_cut_list HA2).
       rewrite map_map. intros psi [theta[<- H]] % in_map_iff. rewrite embed_DMT. apply -> DM_prv. now apply Ctx.
     - intros psi n [theta[H' ->]]. now apply DMT_unused, HT.
     - now apply DMT_closed.
