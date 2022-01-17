@@ -372,10 +372,23 @@ Section DM.
     - apply bounded_closed. now apply DMT_bounded.
   Qed.
 
-  Lemma soundness A phi D (I : interp D) rho :
-    DNE -> A ⊢ phi -> (forall psi, psi el A -> rho ⊨ psi) -> rho ⊨ phi.
+  Lemma soundness' A phi D (I : interp D) rho :
+    DNE -> A ⊢CE phi -> (forall psi, psi el A -> rho ⊨' psi) -> rho ⊨' phi.
   Proof.
-  Admitted.
+    intros HDN. induction 1 in rho |- *; cbn in *.
+    - intros H1 H2. apply IHprv. intros phi' [<-|H']; auto.
+    - auto.
+    - intros HA d. apply IHprv. intros psi.
+      intros [psi'[<- H']] % in_map_iff. apply sat_comp.
+      eapply FOL_completeness.Tarski.sat_ext; try now apply HA.
+      intros []; reflexivity.
+    - intros HA. apply sat_comp.
+      eapply FOL_completeness.Tarski.sat_ext; try apply (IHprv rho HA (eval rho t)).
+      now intros [].
+    - intros HA. exfalso. now apply (IHprv rho).
+    - intros HA. now apply HA.
+    - intros _. apply HDN. tauto.
+  Qed.
 
   Theorem full_compactness (T : form -> Prop) :
     DNE -> (forall psi, T psi -> bounded 0 psi)
@@ -386,13 +399,14 @@ Section DM.
     assert (HT' : closed_T (DMTT T)).
     - intros psi n [theta [Hp % HT ->]]. apply bounded_unused with 0; try lia. now apply DMT_bounded.
     - exists term, (model_bot HT'), var. intros phi Hp. apply DMT_sat; trivial. apply valid_T_model_bot.
-      + intros [A[[B [HB ->]] % DMT_incl HA]]. apply embed_prv in HA. cbn in HA.
-        destruct (H B HB) as (D & I & rho & HI). assert (HA' : B ⊢ ⊥).
-        * apply 
-
-        apply (@soundness _ _ D I rho) in HA.
+      + intros [A[[B [HB ->]] % DMT_incl HA]].
+        destruct (H B HB) as (D & I & rho & HI).
+        apply (@soundness' _ _ D I rho) in HA; trivial.
+        intros psi' [psi[<- H']] % in_map_iff. apply DMT_sat; auto.
       + exists phi. now split.
+  Qed.
 
 End DM.
 
 Print Assumptions full_completeness.
+Print Assumptions full_compactness.
