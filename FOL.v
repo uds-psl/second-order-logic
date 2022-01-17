@@ -520,6 +520,7 @@ Section Deduction.
     | DI1 {ff} A phi psi : A ⊢ phi -> A ⊢ phi ∨ psi
     | DI2 {ff} A phi psi : A ⊢ psi -> A ⊢ phi ∨ psi
     | DE {ff} A phi psi theta : A ⊢ phi ∨ psi -> phi::A ⊢ theta -> psi::A ⊢ theta -> A ⊢ theta
+    | Peirce {ff} A phi psi : A ⊢ (((phi --> psi) --> phi) --> phi)
   where "A ⊢ phi" := (prv _ A phi).
   Notation "A ⊢ phi" := (prv _ A phi).
 
@@ -542,7 +543,7 @@ Section Deduction.
     A ⊢ phi -> [phi[xi] | phi ∈ A] ⊢ phi[xi].
   Proof.
     induction 1 in xi |-*; comp.
-    1-2,7-14: eauto using List.in_map.
+    1-2,7-15: eauto using List.in_map.
     - apply AllI. setoid_rewrite map_map in IHprv. erewrite map_map, map_ext.
       apply IHprv. intros ?. cbn. now rewrite up_form.
     - specialize (IHprv xi). apply AllE with (t0 := t`[xi]) in IHprv. rewrite subst_comp in *.
