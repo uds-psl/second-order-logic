@@ -167,7 +167,7 @@ End ND_def.
 Hint Constructors prv.
 
 Arguments prv {_ _ _ _} _ _.
-Notation "A ⊢ phi" := (prv A phi) (at level 30).
+Notation "A ⊢ phi" := (prv A phi) (at level 61).
 Notation "A '⊢(' p , b ')' phi" := (@prv _ _ p b A phi) (at level 30).
 Notation "A ⊢CE phi" := (@prv _ _ falsity_on class A phi) (at level 30).
 Notation "A ⊢CL phi" := (@prv _ _ falsity_off class A phi) (at level 30).

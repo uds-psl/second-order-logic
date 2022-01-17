@@ -13,7 +13,7 @@ Notation "∀ Phi" := (@quant _ _ full_operators _ All Phi) (at level 50).
 Notation "∃ Phi" := (quant Ex Phi) (at level 56, right associativity).
 Notation "¬ phi" := (phi ~> ⊥) (at level 20).
 
-Notation "A ⊢ phi" := (prv _ A phi) (at level 30).
+Notation "A ⊢ phi" := (prv _ A phi) (at level 61).
 
 Hint Constructors prv.
 
@@ -371,6 +371,27 @@ Section DM.
     - intros psi n [theta [Hp % HB1 ->]]. apply bounded_unused with 0; try lia. now apply DMT_bounded.
     - apply bounded_closed. now apply DMT_bounded.
   Qed.
+
+  Lemma soundness A phi D (I : interp D) rho :
+    DNE -> A ⊢ phi -> (forall psi, psi el A -> rho ⊨ psi) -> rho ⊨ phi.
+  Proof.
+  Admitted.
+
+  Theorem full_compactness (T : form -> Prop) :
+    DNE -> (forall psi, T psi -> bounded 0 psi)
+    -> (forall A, (forall phi, phi el A -> T phi) -> exists D (I : interp D) rho, forall phi, phi el A -> rho ⊨ phi)
+    -> exists D (I : interp D) rho, forall phi, T phi -> rho ⊨ phi.
+  Proof.
+    intros HDN HT H. destruct HeF, HeP.
+    assert (HT' : closed_T (DMTT T)).
+    - intros psi n [theta [Hp % HT ->]]. apply bounded_unused with 0; try lia. now apply DMT_bounded.
+    - exists term, (model_bot HT'), var. intros phi Hp. apply DMT_sat; trivial. apply valid_T_model_bot.
+      + intros [A[[B [HB ->]] % DMT_incl HA]]. apply embed_prv in HA. cbn in HA.
+        destruct (H B HB) as (D & I & rho & HI). assert (HA' : B ⊢ ⊥).
+        * apply 
+
+        apply (@soundness _ _ D I rho) in HA.
+      + exists phi. now split.
 
 End DM.
 
