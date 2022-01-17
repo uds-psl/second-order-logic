@@ -5,6 +5,18 @@ Require Export Enumeration GenConstructions Consistency FOL_completeness.Tarski.
 
 (* ** Standard Models **)
 
+Lemma form_ind_falsity  {Σf : funcs_signature} {Σp : preds_signature} {ops : operators} (P : form falsity_on -> Prop) :
+  P ⊥ ->
+  (forall  (P0 : Σp) (t : t term (ar_preds P0)), P (atom P0 t)) ->
+  (forall  (b0 : binop) (f1 : form), P f1 -> forall f2 : form, P f2 -> P (bin b0 f1 f2)) ->
+  (forall (q : quantop) (f2 : form), P f2 -> P (quant q f2)) ->
+  forall (f4 : form), P f4.
+Proof.
+  intros H1 H2 H3 H4 phi.
+  change ((fun ff => match ff with falsity_on => fun phi => P phi | _ => fun _ => True end) falsity_on phi).
+  induction phi; try destruct b; firstorder.
+Qed.
+
 Section Completeness.
   Context {Σf : funcs_signature} {Σp : preds_signature}.
   Context {HdF : eq_dec Σf} {HdP : eq_dec Σp}.
@@ -54,15 +66,6 @@ Section Completeness.
     Proof.
       induction t using strong_term_ind; comp; try congruence. f_equal.
     Qed.
-
-    Lemma form_ind_falsity (P : form falsity_on -> Prop) :
-      P ⊥ ->
-      (forall  (P0 : Σp) (t : t term (ar_preds P0)), P (atom P0 t)) ->
-      (forall  (b0 : binop) (f1 : form), P f1 -> forall f2 : form, P f2 -> P (bin b0 f1 f2)) ->
-      (forall (q : quantop) (f2 : form), P f2 -> P (quant q f2)) ->
-      forall (f4 : form), P f4.
-    Proof.
-    Admitted.
 
     Lemma help phi t sigma :
       phi[up sigma][t..] = phi[t.:sigma].
