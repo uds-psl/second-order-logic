@@ -190,32 +190,6 @@ Section DM.
     now intros ->.
   Qed.
 
-  (*Lemma prv_ind_falsity :
-    forall {Σf : funcs_signature} {Σp : preds_signature} (P : list form -> form -> Prop),
-      (forall A (phi psi : form), (phi :: A) ⊢ psi -> P (phi :: A) psi -> P A (phi ~> psi)) ->
-      (forall A (phi psi : form),
-          A ⊢ (phi ~> psi) -> P A (phi ~> psi) -> A ⊢ phi -> P A phi -> P A psi) ->
-      (forall A (phi : form), [p[↑] | p ∈ A] ⊢ phi -> P (map (subst_form ↑) A) phi -> P A (∀ phi)) ->
-      (forall A (t : term) (phi : form), A ⊢ (∀ phi) -> P A (∀ phi) -> P A phi[t..]) ->
-      (forall A (t : term) (phi : form), A ⊢ phi[t..] -> P A phi[t..] -> P A (∃ phi)) ->
-      (forall A (phi psi : form),
-          A ⊢ (∃ phi) -> P A (∃ phi) -> (phi :: [p[↑] | p ∈ A]) ⊢ psi[↑] -> P (phi :: [p[↑] | p ∈ A]) psi[↑] -> P A psi) ->
-      (forall A (phi : form), A ⊢ ⊥ -> P A ⊥ -> P A phi) ->
-      (forall A (phi : form), phi el A -> P A phi) ->
-      (forall A (phi psi : form),
-          A ⊢ phi -> P A phi -> A ⊢ psi -> P A psi -> P A (phi ∧ psi)) ->
-      (forall A (phi psi : form), A ⊢ (phi ∧ psi) -> P A (phi ∧ psi) -> P A phi) ->
-      (forall A (phi psi : form), A ⊢ (phi ∧ psi) -> P A (phi ∧ psi) -> P A psi) ->
-      (forall A (phi psi : form), A ⊢ phi -> P A phi -> P A (phi ∨ psi)) ->
-      (forall A (phi psi : form), A ⊢ psi -> P A psi -> P A (phi ∨ psi)) ->
-      (forall A (phi psi theta : form),
-          A ⊢ (phi ∨ psi) ->
-          P A (phi ∨ psi) -> (phi :: A) ⊢ theta -> P (phi :: A) theta -> (psi :: A) ⊢ theta -> P (psi :: A) theta -> P A theta) ->
-      (forall A (phi psi : form), P A (((phi ~> psi) ~> phi) ~> phi)) ->
-      forall l (f14 : form), l ⊢ f14 -> P l f14.
-  Proof.
-  Admitted.*)
-
   Lemma DMT_prv {ff : falsity_flag} A phi :
     prv ff A phi -> (map DMT A) ⊢CE (DMT phi).
   Proof.
@@ -343,30 +317,61 @@ Section DM.
     - apply Peirce.
   Qed.
 
-  (*Lemma DMT_unused phi n :
-    unused n phi -> FOL.unused n (DMT phi).
+  Lemma DMT_bounded phi n :
+    bounded n phi -> bounded n (DMT phi).
   Proof.
-    induction 1; cbn; repeat constructor; assumption.
-  Qed.*)
+    induction 1.
+    - constructor. apply H.
+    - destruct binop; cbn; now repeat constructor.
+    - destruct quantop; cbn; now repeat constructor.
+    - constructor.
+  Qed.
 
-  Lemma DMT_closed phi :
-    bounded 0 phi -> bounded 0 (DMT phi).
+  Lemma vec_in_In {X} k (v : Vector.t X k) a :
+    FOL_facts.vec_in a v -> Vector.In a v.
   Proof.
-  Admitted.
+    induction 1. now left. now right.
+  Qed.
+
+  Lemma bounded_unused_term t n :
+    bounded_t n t -> forall k, k >= n -> unused_term k t.
+  Proof.
+    induction 1.
+    - intros k Hk. constructor. lia.
+    - intros k Hk. constructor. intros t Ht. apply H0; trivial. now apply vec_in_In.
+  Qed.
+
+  Lemma bounded_unused phi n :
+    bounded n phi -> forall k, k >= n -> unused k phi.
+  Proof.
+    induction 1; intros k Hk.
+    - constructor. intros t Ht. apply bounded_unused_term with n; trivial. now apply H, vec_in_In.
+    - destruct binop. constructor; intuition.
+    - destruct quantop. constructor. apply IHbounded. lia.
+    - constructor.
+  Qed.
+
+  Lemma bounded_closed phi :
+    bounded 0 phi -> closed phi.
+  Proof.
+    intros H k. apply (bounded_unused H). lia.
+  Qed.
   
   Context {HdF : eq_dec Σ_funcs} {HdP : eq_dec Σ_preds}.
   Context {HeF : enumerable__T Σ_funcs} {HeP : enumerable__T Σ_preds}.
 
   Theorem full_completeness (T : form -> Prop) phi :
-    DNE -> T ⊨= phi -> exists A, (forall phi, phi el A -> T phi) /\ A ⊢ phi.
+    DNE -> (forall psi, T psi -> bounded 0 psi) -> bounded 0 phi -> T ⊨= phi -> exists A, (forall psi, psi el A -> T psi) /\ A ⊢ phi.
   Proof.
-    intros HDN H'. assert (H : (DMTT T) ⊨=' DMT phi) by now apply DMT_valid.
+    intros HDN HB1 HB2 H'. assert (H : (DMTT T) ⊨=' DMT phi) by now apply DMT_valid.
     destruct HeF, HeP. eapply semi_completeness_standard in H; eauto.
     - apply HDN in H as [A[HA1 HA2 % embed_prv]]. apply DMT_incl in HA1 as [B[HB ->]].
-      exists B. split; trivial. apply DM_prv. rewrite embed_DMT in HA2. apply (prv_cut_list HA2).
+      exists B. split; try apply HB. apply DM_prv. rewrite embed_DMT in HA2. apply (prv_cut_list HA2).
       rewrite map_map. intros psi [theta[<- H]] % in_map_iff. rewrite embed_DMT. apply -> DM_prv. now apply Ctx.
-    - intros psi n [theta[H' ->]]. now apply DMT_unused, HT.
-    - now apply DMT_closed.
+    - intros psi n [theta [Hp % HB1 ->]]. apply bounded_unused with 0; try lia. now apply DMT_bounded.
+    - apply bounded_closed. now apply DMT_bounded.
   Qed.
 
 End DM.
+
+Print Assumptions full_completeness.
