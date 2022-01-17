@@ -1291,7 +1291,9 @@ Section Signature.
     + now intros [].
   Qed.
 
-  Lemma prv1_to_prv2 {ff : falsity_flag} {p' : peirce} phi A :
+  Existing Instance class.
+
+  Lemma prv1_to_prv2 {ff : falsity_flag} phi A :
     A ⊢1 phi -> (List.map toSOLForm A) ⊢2 toSOLForm phi.
   Proof.
     intros H. induction H.
@@ -1309,6 +1311,7 @@ Section Signature.
     - eapply DI1, IHprv.
     - eapply DI2, IHprv.
     - eapply DE. apply IHprv1. apply IHprv2. apply IHprv3.
+    - apply Peirce.
   Qed.
 
 
@@ -1571,7 +1574,7 @@ Section Signature.
     rewrite initial_pos_p_inv_subst, initial_pos_i_inv_subst. now apply toSOLFOLForm_equiv.
   Qed.
 
-  Lemma prv1_to_prv2' {ff : falsity_flag} {p' : peirce} phi A :
+  Lemma prv1_to_prv2' {ff : falsity_flag} phi A :
     A ⊢1 phi -> List.map removeFalsePred (List.map toSOLForm' A) ⊢2 removeFalsePred (toSOLForm' phi).
   Proof.
     intros H. apply prv_removeFalsePred. unfold toSOLForm'.
@@ -1630,7 +1633,7 @@ Section Signature.
     - now apply AllI_i.
   Qed.
 
-  Lemma prv_if_firstorder_prv {p' : peirce} (T : SOL.form -> Prop) phi :
+  Lemma prv_if_firstorder_prv (T : SOL.form -> Prop) phi :
     funcfree phi -> (forall psi, T psi -> funcfree psi) -> toFOLTheory (T ∪ C) ⊩1 (toFOLForm' phi) -> T ⊩2 phi.
   Proof.
     intros F TF.
@@ -1661,34 +1664,15 @@ Section Signature.
 
     Hypothesis prv1_complete : forall {ff : falsity_flag} T phi, validFO T phi -> T ⊩1 phi.
 
-    Theorem Completeness {p' : peirce}  (T : SOL.form -> Prop) phi : 
+    Existing Instance class.
+
+    Theorem Completeness (T : SOL.form -> Prop) phi : 
       funcfree phi -> (forall psi, T psi -> funcfree psi) -> Henkin.validT T phi -> T ⊩2 phi.
     Proof.
       intros F TF H.
       apply prv_if_firstorder_prv; trivial.
       apply prv1_complete, henkin_valid_iff_firstorder_valid; trivial.
     Qed.
-
-
-    Existing Instance intu.
-
-    Lemma first_order_prv_if_prv_I (T : SOL.form -> Prop) phi :
-      funcfree phi -> (forall psi, T psi -> funcfree psi) -> T ⊩2 phi -> toFOLTheory (T ∪ C) ⊩1 (toFOLForm' phi).
-    Proof.
-      intros F TF. intros H. 
-      apply prv1_complete, henkin_valid_iff_firstorder_valid; trivial.
-      now apply Deduction.HenkinSoundnessIT.
-    Qed.
-
-    Theorem prv_iff_firstorder_prv_I (T : SOL.form -> Prop) phi :
-      funcfree phi -> (forall psi, T psi -> funcfree psi) -> toFOLTheory (T ∪ C) ⊩1 (toFOLForm' phi) <-> T ⊩2 phi.
-    Proof.
-      intros F TF. split.
-      - now apply prv_if_firstorder_prv.
-      - now apply first_order_prv_if_prv_I.
-    Qed.
-
-    Existing Instance class.
 
     Lemma first_order_prv_if_prv_C (T : SOL.form -> Prop) phi :
       LEM -> funcfree phi -> (forall psi, T psi -> funcfree psi) -> T ⊩2 phi -> toFOLTheory (T ∪ C) ⊩1 (toFOLForm' phi).
@@ -1809,7 +1793,7 @@ Section Signature.
 
     Hypothesis prv1_complete : forall {ff : falsity_flag} T phi, validFO T phi -> T ⊩1 phi.
 
-    Theorem Compactness_by_Completeness {p : peirce} :
+    Theorem Compactness_by_Completeness :
       LEM -> forall (T : form -> Prop), (forall phi, T phi -> funcfree phi) -> has_henkin_model T <-> forall A, (forall phi, List.In phi A -> T phi) -> has_henkin_model (fun phi => List.In phi A).
     Proof.
       intros lem T TF. split.
@@ -1819,13 +1803,9 @@ Section Signature.
           apply Completeness; cbn; trivial. intros D I funcs preds HI HC rho Hrho H2.
           apply H. exists D, I, funcs, preds. split. easy. split. easy. split. easy. 
           exists rho. split. easy. easy. }
-        intros [A [H2 H3]]. destruct p.
-        + apply HenkinSoundnessC in H3; trivial.
-          destruct (H1 A) as [D [I [funcs [preds [HDP [HI [HCompr [rho [Hrho H4]]]]]]]]]; trivial. 
-          eapply H3; eauto.
-        + apply HenkinSoundnessI in H3.
-          destruct (H1 A) as [D [I [funcs [preds [HDP [HI [HCompr [rho [Hrho H4]]]]]]]]]; trivial. 
-          eapply H3; eauto.
+        intros [A [H2 H3]]. apply HenkinSoundnessC in H3; trivial.
+        destruct (H1 A) as [D [I [funcs [preds [HDP [HI [HCompr [rho [Hrho H4]]]]]]]]]; trivial. 
+        eapply H3; eauto.
     Qed.
 
   End CompactnessByCompleteness.
