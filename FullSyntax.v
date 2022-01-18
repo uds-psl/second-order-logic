@@ -199,4 +199,4 @@ Notation "A ∧ B" := (@bin _ _ full_operators Conj A B) (at level 41).
 Notation "A ∨ B" := (@bin _ _ full_operators Disj A B) (at level 42).
 Notation "A '-->' B" := (@bin _ _ full_operators Impl A B) (at level 43, right associativity).
 Notation "A '<-->' B" := ((A --> B) ∧ (B --> A)) (at level 43).
-Notation "¬ A" := (A --> ⊥) (at level 40).
+Notation "¬ A" := (A --> ⊥) (at level 20).

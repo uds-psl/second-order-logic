@@ -68,14 +68,14 @@ Section Signature.
 
   (** The extended signatures preserve discreteness and enumerablility *)
 
-  Lemma Sigma_f1_eq_dec :
+  Instance Sigma_f1_eq_dec :
     eq_dec Σf2 -> eq_dec Σf1.
   Proof.
     intros H [x] [y]. enough (dec (x = y)) as [->|H1]. 
     now left. right. congruence. apply H.
   Qed.
 
-  Lemma Sigma_p1_eq_dec :
+  Instance Sigma_p1_eq_dec :
     eq_dec Σp2 -> eq_dec Σp1.
   Proof.
     intros H [p|n] [p'|n'].
@@ -230,6 +230,51 @@ Section Signature.
   Proof.
     intros H. apply forall_n_funcfree. repeat split; cbn.
     1,4: induction ar; firstorder. all: now apply funcfree_subst_p.
+  Qed.
+
+  Lemma toFOLTerm_closed pos_i b t :
+    funcfreeTerm t
+    -> (forall n, ~bounded_indi_term n t -> pos_i n < b) 
+    -> bounded_t b (toFOLTerm pos_i t).
+  Proof.
+    induction t in pos_i, b |-*; cbn; intros F Bi; constructor.
+    - apply Bi. lia.
+    - now exfalso.
+    - intros t [t' [<- H1]]%In_compat%In_map_iff. eapply Forall_in in IH. apply IH. 3: easy.
+      eapply Forall_in in F; eauto. intros n H2. apply Bi. intros H3. apply H2.
+      eapply Forall_in in H3. apply H3. easy.
+  Qed.
+
+  Lemma toFOLForm_bounded pos_i pos_p b phi :
+    funcfree phi
+    -> (forall n, ~bounded_indi n phi -> pos_i n < b)
+    -> (forall n ar, ~bounded_pred ar n phi -> pos_p n ar < b)
+    -> bounded b (toFOLForm pos_i pos_p phi).
+  Proof.
+    induction phi in pos_i, pos_p, b |-*; cbn; intros F Bi Bp.
+    - constructor.
+    - destruct p; constructor.
+      + intros t H. apply In_compat in H as [->|[t' [<- H]]%In_map_iff]. 
+        constructor. apply Bp. lia. apply toFOLTerm_closed. eapply Forall_in in F.
+        apply F. easy. intros n' H1. apply Bi. intros H2. apply H1. eapply Forall_in in H2.
+        apply H2. easy.
+      + intros t [t' [<- H]]%In_compat%In_map_iff. apply toFOLTerm_closed. eapply Forall_in in F.
+        apply F. easy. intros n' H1. apply Bi. intros H2. apply H1. eapply Forall_in in H2.
+        apply H2. easy.
+    - constructor. apply IHphi1; firstorder. apply IHphi2; firstorder.
+    - constructor. apply IHphi. easy. intros []; cbn; firstorder lia. 
+      intros n ar; unfold pshift'; firstorder lia.
+    - constructor.
+    - constructor. apply IHphi. easy. intros n'; unfold pshift; firstorder lia.
+      intros [] ar H; cbn; destruct PeanoNat.Nat.eq_dec as [->|]; firstorder lia.
+  Qed.
+
+  Lemma toFOLForm_closed pos_i pos_p phi :
+    closed phi -> funcfree phi -> bounded 0 (toFOLForm pos_i pos_p phi).
+  Proof.
+    intros C F. apply toFOLForm_bounded. easy.
+    - intros n H. exfalso. apply H. eapply bounded_indi_up. 2: apply C. lia.
+    - intros n ar H. exfalso. apply H. eapply bounded_pred_up. 2: apply C. lia.
   Qed.
 
 
@@ -1167,8 +1212,8 @@ Section Signature.
 
   (** Boundedness *)
 
-  Hypothesis Σf2_eq_dec : forall f1 f2 : Σf2, f1 = f2 \/ f1 <> f2.
-  Hypothesis Σp2_eq_dec : forall p1 p2 : Σp2, p1 = p2 \/ p1 <> p2.
+  Hypothesis Σf2_eq_dec : eq_dec Σf2.
+  Hypothesis Σp2_eq_dec : eq_dec Σp2.
 
   Lemma toSOLTerm_bounded_indi {ff : falsity_flag} t b :
     bounded_t b t -> bounded_indi_term b (toSOLTerm t).
@@ -1177,7 +1222,7 @@ Section Signature.
     - now inversion H.
     - destruct F; cbn. rewrite Forall_map. eapply Forall_ext_Forall. apply IH.
       apply Forall_in. intros t H1. inversion H. apply inj_pairT2 in H3 as ->.
-      apply H2. now apply In_compat. decide equality.
+      apply H2. now apply In_compat. decide equality; destruct (Σf2_eq_dec s0 s1); auto.
   Qed.
 
   Lemma toSOLForm_bounded_indi {ff : falsity_flag} phi b :
@@ -1185,7 +1230,7 @@ Section Signature.
   Proof.
     revert b. induction phi; intros b' H; cbn.
     - easy.
-    - inversion H. apply inj_pairT2 in H4 as ->. 2: decide equality; lia.
+    - inversion H. apply inj_pairT2 in H4 as ->. 2: decide equality; try destruct (Σp2_eq_dec p p0); auto; lia.
       destruct P; cbn. 2: depelim t; destruct h; cbn.
       all: apply Forall_in; intros ? [t' [<- H4]]%In_map_iff; apply toSOLTerm_bounded_indi;
       apply H3. now apply In_compat. all: constructor; now apply In_compat.
@@ -1202,7 +1247,7 @@ Section Signature.
     - easy.
     - destruct P; cbn. easy. depelim t; destruct h; cbn. left. inversion H.
       apply inj_pairT2 in H4 as ->. specialize (H3 (FOL.var n0) ltac:(constructor)). now inversion H3.
-      decide equality. lia. easy.
+      decide equality. destruct (Σp2_eq_dec p p0); auto. lia. easy.
     - inversion H. apply inj_pairT2 in H1 as ->, H5 as ->. split. now apply IHphi1.
       now apply IHphi2. all: decide equality.
     - inversion H. apply inj_pairT2 in H4 as ->. 2: decide equality.
@@ -1658,27 +1703,52 @@ Section Signature.
 
   (** * Consequences of Reduction *)
 
+  Require Import FOL_completeness.DeMorgan.
+
+  Hypothesis Σp2_enumerable : enumerable__T Σp2.
+  Hypothesis Σf2_enumerable : enumerable__T Σf2.
+
   (** ** Completeness *)
 
   Section Completeness.
 
-    Hypothesis prv1_complete : forall {ff : falsity_flag} T phi, validFO T phi -> T ⊩1 phi.
-
     Existing Instance class.
 
-    Theorem Completeness (T : SOL.form -> Prop) phi : 
-      funcfree phi -> (forall psi, T psi -> funcfree psi) -> Henkin.validT T phi -> T ⊩2 phi.
+    Hypothesis FOL_complete : DNE -> forall (T : FOL.form -> Prop) phi, (forall psi, T psi -> bounded 0 psi) -> bounded 0 phi -> validFO T phi -> T ⊩1 phi.
+
+    (* Hypothesis FOL_complete : DNE -> (forall psi, T psi -> bounded 0 psi) -> bounded 0 phi -> T ⊨= phi -> exists A, (forall psi, psi el A -> T psi) /\ A ⊢ phi. *)
+
+    Lemma theory_extension_closed (T : form -> Prop) :
+      (forall phi, T phi -> closed phi) -> (forall phi, T phi -> funcfree phi) -> forall phi, toFOLTheory (T ∪ Signature.C) phi -> bounded 0 phi.
     Proof.
-      intros F TF H.
-      apply prv_if_firstorder_prv; trivial.
-      apply prv1_complete, henkin_valid_iff_firstorder_valid; trivial.
+      intros TC TF phi [? [-> [H1|[? [? [H1 ->]]]]]]; apply toFOLForm_closed.
+      - now apply TC.
+      - now apply TF.
+      - repeat split. 
+        + apply close_indi_correct.
+        + intros. apply funcfree_bounded_func, close_indi_funcfree, close_pred_funcfree.
+          now apply comprehension_form_funcfree.
+        + intros. apply close_indi_bounded_pred, close_pred_correct.
+      - now apply close_indi_funcfree, close_pred_funcfree, comprehension_form_funcfree.
     Qed.
+
+    Theorem Completeness_by_reduction (T : SOL.form -> Prop) phi : 
+      DNE -> funcfree phi -> (forall psi, T psi -> funcfree psi) -> closed phi -> (forall phi, T phi -> closed phi) -> Henkin.validT T phi -> T ⊩2 phi.
+    Proof.
+      intros dne F TF C TC H. apply prv_if_firstorder_prv; trivial. 
+      apply FOL_complete. assumption. now apply theory_extension_closed.
+      now apply toFOLForm_closed. apply henkin_valid_iff_firstorder_valid; trivial.
+    Qed.
+
+
+    (* Assume completeness for open formulas *)
+    Hypothesis FOL_complete' : forall {ff : falsity_flag} T phi, validFO T phi -> T ⊩1 phi.
 
     Lemma first_order_prv_if_prv_C (T : SOL.form -> Prop) phi :
       LEM -> funcfree phi -> (forall psi, T psi -> funcfree psi) -> T ⊩2 phi -> toFOLTheory (T ∪ C) ⊩1 (toFOLForm' phi).
     Proof.
       intros lem F TF. intros H. 
-      apply prv1_complete, henkin_valid_iff_firstorder_valid; trivial.
+      apply FOL_complete', henkin_valid_iff_firstorder_valid; trivial.
       now apply Deduction.HenkinSoundnessCT.
     Qed.
 
@@ -1692,6 +1762,12 @@ Section Signature.
 
   End Completeness.
 
+  Theorem Completeness (T : SOL.form -> Prop) phi : 
+    DNE -> funcfree phi -> (forall psi, T psi -> funcfree psi) -> closed phi -> (forall phi, T phi -> closed phi) -> Henkin.validT T phi -> T ⊩2 phi.
+  Proof.
+    apply Completeness_by_reduction. intros. apply (@FOL_completeness.DeMorgan.full_completeness _ _ _ _); trivial.
+    now apply Sigma_f1_enumerable. now apply Sigma_p1_enumerable.
+  Qed.
 
 
 
@@ -1717,6 +1793,14 @@ Section Signature.
     (forall phi, T' phi -> T phi) -> has_firstorder_model_with P T -> has_firstorder_model_with P T'.
   Proof.
     intros HT [D [I [rho [H1 H2]]]]. exists D, I, rho. split. easy. intros phi H3. apply H2, HT, H3.
+  Qed.
+
+  Lemma has_firstorder_model_char (T : FOL.form -> Prop) :
+    has_firstorder_model T <-> exists D (I : FOL.interp D) rho, forall phi, T phi -> @FOL.sat _ _ D I _ rho phi.
+  Proof.
+    split.
+    - intros (D & I & rho & _ & H). now exists D, I, rho.
+    - intros (D & I & rho & H). now exists D, I, rho.
   Qed.
 
   Lemma has_henkin_model_with_ext (T T' : form -> Prop) (P P' : Type -> Prop) :  
@@ -1789,27 +1873,6 @@ Section Signature.
   Qed.
 
 
-  Section CompactnessByCompleteness.
-
-    Hypothesis prv1_complete : forall {ff : falsity_flag} T phi, validFO T phi -> T ⊩1 phi.
-
-    Theorem Compactness_by_Completeness :
-      LEM -> forall (T : form -> Prop), (forall phi, T phi -> funcfree phi) -> has_henkin_model T <-> forall A, (forall phi, List.In phi A -> T phi) -> has_henkin_model (fun phi => List.In phi A).
-    Proof.
-      intros lem T TF. split.
-      - intros H1 A H2. eapply has_henkin_model_with_ext. 3: apply H1. easy. easy.
-      - intros H1.  enough (~ T ⊩ ⊥) as HT.
-        { edestruct lem as [X|H]. apply X. exfalso. apply HT.
-          apply Completeness; cbn; trivial. intros D I funcs preds HI HC rho Hrho H2.
-          apply H. exists D, I, funcs, preds. split. easy. split. easy. split. easy. 
-          exists rho. split. easy. easy. }
-        intros [A [H2 H3]]. apply HenkinSoundnessC in H3; trivial.
-        destruct (H1 A) as [D [I [funcs [preds [HDP [HI [HCompr [rho [Hrho H4]]]]]]]]]; trivial. 
-        eapply H3; eauto.
-    Qed.
-
-  End CompactnessByCompleteness.
-
 
   Section CompactnessByReduction.
 
@@ -1830,22 +1893,21 @@ Section Signature.
     Qed.
 
     Hypothesis FOL_compact :
-      forall (T : FOL.form -> Prop), has_firstorder_model T <-> forall A, (forall phi, List.In phi A -> T phi) -> has_firstorder_model (fun phi => List.In phi A).
+      DNE -> forall (T : FOL.form -> Prop), (forall phi, T phi -> bounded 0 phi) -> (forall A, (forall phi, List.In phi A -> T phi) -> has_firstorder_model (fun phi => List.In phi A)) -> has_firstorder_model T.
 
-    Theorem Compactness :
-      forall (T : form -> Prop), (forall phi, T phi -> funcfree phi) -> has_henkin_model T <-> forall A, (forall phi, List.In phi A -> T phi) -> has_henkin_model (fun phi => List.In phi A).
+    Theorem Compactness_by_reduction :
+      DNE -> forall (T : form -> Prop), (forall phi, T phi -> funcfree phi) -> (forall phi, T phi -> closed phi) -> (forall A, (forall phi, List.In phi A -> T phi) -> has_henkin_model (fun phi => List.In phi A)) -> has_henkin_model T.
     Proof.
-      intros T TF. split.
-      - intros [D [I [funcs [preds [_ [HI [HCompr [rho [Hrho H1]]]]]]]]] A H2.
-        exists D, I, funcs, preds. split. easy. split. easy. split. easy. exists rho. 
-        split. easy. intros phi H3. apply H1, H2, H3.
-      - intros H1. apply theory_has_henkin_model_if_theory_has_firstorder_model; trivial.
-        apply FOL_compact. intros A H2.
+      intros dne T TF TC H1. apply theory_has_henkin_model_if_theory_has_firstorder_model; trivial.
+      apply FOL_compact.
+      - assumption.
+      - now apply theory_extension_closed.
+      - intros A H2.
         assert (exists B, A = List.map toFOLForm' B /\ forall phi,  List.In phi B -> T phi \/ C phi) as [B [-> HB]].
         { clear -H2. induction A; cbn. now exists List.nil.
           destruct IHA as [B [-> H3]]; firstorder. destruct (H2 a) as [phi [-> ]]; trivial. 
           exists (List.cons phi B). split. reflexivity. intros psi [->|]. easy. now apply H3. }
-        destruct (theory_decompose T C B) as [BT [BC [HB1 [HB2 HB3]]]]; trivial.
+        destruct (@theory_decompose T C B) as [BT [BC [HB1 [HB2 HB3]]]]; trivial.
         apply has_firstorder_model_with_ext with (T := toFOLTheory (fun phi => List.In phi B)).
         intros ? [? [<- ?]]%List.in_map_iff. eexists. split. reflexivity. easy.
         eapply theory_has_firstorder_model_if_theory_has_henkin_model with (P := fun _ => True).
@@ -1860,6 +1922,15 @@ Section Signature.
     Qed.
 
   End CompactnessByReduction.
+
+  Theorem Compactness :
+    DNE -> forall (T : form -> Prop), (forall phi, T phi -> funcfree phi) -> (forall phi, T phi -> closed phi) -> (forall A, (forall phi, List.In phi A -> T phi) -> has_henkin_model (fun phi => List.In phi A)) -> has_henkin_model T.
+  Proof.
+    apply Compactness_by_reduction. setoid_rewrite has_firstorder_model_char.
+    intros. apply (@FOL_completeness.DeMorgan.full_compactness _ _ _ _); trivial.
+    now apply Sigma_f1_enumerable. now apply Sigma_p1_enumerable.
+  Qed.
+
 
 
   (** ** Löwenheim-Skolem *)
